@@ -28,8 +28,39 @@ npm install @grinwiz/fastify-chassis
 ---
 
 ## 🚀 Quick Start
+```javascript
+// config/index.js
+require('dotenv').config();
+
+const { name: repositoryName } = require('../package.json');
+
+const config = {
+  server: {
+    nodeEnv: { $env: 'NODE_ENV', default: 'development' },
+    port: { $env: 'PORT', default: 3000, type: 'number' }
+  },
+  db: {
+    host: { $env: 'DB_HOST', type: 'string' },
+    credentials: {
+      user: { $env: 'DB_USER' },
+      password: { $env: 'DB_PASSWORD' },
+    },
+  },
+  logger: {
+    name: { $env: 'LOG_NAME', default: repositoryName },
+    level: { $env: 'LOG_LEVEL', default: 'info' }
+  },
+  jwt: {
+    secret: { $env: 'JWT_SECRET' },
+    expiresIn: { $env: 'JWT_EXPIRES_IN' }
+  }
+};
+
+module.exports = config;
+```
 
 ```javascript
+// index.js
 const { Server } = require('@grinwiz/fastify-chassis');
 const config = require('./config');
 
@@ -63,9 +94,11 @@ notes: Routes will always register root path (`/`)
 ## 📚 Architecture Overview
 
 ```plaintext
-src/
-├── config/
-│   └── index.js
+lib/
+├── loader/
+│   ├── index.js.js
+│   ├── PluginManager.js
+│   ├── RouterManager.js
 ├── server/
 │   ├── Server.js
 │   ├── hooks/
@@ -73,12 +106,11 @@ src/
 │   │   └── onCloseHook.js
 │   ├── plugins/
 │   │   ├── gracefulShutdown.js
-│   │   └── jwtPlugin.js
-│   └── routes/
-│       └── modules/
-├── loader/
-│   ├── PluginManager.js
-│   ├── RouterManager.js
+│   └── └── jwtPlugin.js
+├── validations/
+│   ├── index.js.js
+│   ├── resolveEnv.js
+│   ├── validatEnv.js
 └── index.js
 ```
 
@@ -123,27 +155,34 @@ module.exports = {
 };
 ```
 Routes index `/src/routes/index.js`
-```
+```javascript
 const userRoutes = require('./users');
 const postRoutes = require('./posts');
 
 module.exports = [
-  userRoutes
-]
+  {
+    routes: [userRoutes, postRoutes],
+  }
+];
+```
+or we can add `prefix` options like this:
+```javascript
+const userRoutes = require('./users');
+const postRoutes = require('./posts');
+
+module.exports = [
+  {
+    routes: [userRoutes, postRoutes],
+    options: { prefix: '/api/v1' }
+  }
+];
 ```
 
-Add to server:
+Add it to the server:
 ```javascript
 const server = new Server({
   config,
-  routes: [{ routes }]
-});
-```
-Or we can add prefix:
-```javascript
-const server = new Server({
-  config,
-  routes: [{ prefix: '/api/v1', routes }]
+  routes
 });
 ```
 
@@ -162,13 +201,6 @@ Ensures:
 
 ---
 
-## 📋 Hooks
-
-The server automatically registers:
-- `onError`: Centralized error capture
-- `onClose`: Cleanup tasks before shutting down
-
----
 
 ## ⚡ Performance
 
