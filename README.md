@@ -190,6 +190,10 @@ const server = new Server({
 
 ## 🛑 Graceful Shutdown
 
+Automatic handling of:
+- `SIGINT`
+- `SIGTERM`
+
 Ensures:
 - Server is closed properly
 - Resources are cleaned up
